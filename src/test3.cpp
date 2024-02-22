@@ -38,6 +38,7 @@ float forwardVel = 0.1;
 float rotVel = 0.8;
 const int nMapHeight = 24;
 const int nMapWidth = 24;
+const int MAX_DOF = nMapWidth;
 int nTileSize = 20;
 int gMap[nMapHeight * nMapWidth] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -52,14 +53,14 @@ int gMap[nMapHeight * nMapWidth] = {
     1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
+    1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -77,9 +78,9 @@ void init() {
     exit(1);
   }
 
-  gWindow = SDL_CreateWindow("RayCaster 1.3", SDL_WINDOWPOS_UNDEFINED,
-                             SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH,
-                             SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+  gWindow = SDL_CreateWindow(
+      "RayCaster 1.3", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+      SCREEN_WIDTH + SCREEN_HEIGHT, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 
   if (!gWindow) {
     std::cerr << "Couldn't Create Window \n";
@@ -172,31 +173,28 @@ int main(int argc, char **argv) {
         case SDLK_w: {
           fPLX += deltaTime * forwardVel * cos(fPA);
           fPLY -= forwardVel * deltaTime * sin(fPA);
-          int nPX = static_cast<int>(fPLX);
-          int nPY = static_cast<int>(fPLY);
-          // TODO: collison checking
-          /* if (nPX + nPY * nMapHeight < 0 || */
-          /*     nPX + nPY * nMapHeight > nMapHeight * nMapWidth || */
-          /*     gMap[nPX + nPY * nMapHeight]) { */
-          /*   fPLX -= deltaTime * forwardVel * cos(fPA); */
-          /*   fPLY += forwardVel * deltaTime * sin(fPA); */
-          /* } */
+          int nPX = static_cast<int>((fPLX * nPLW / nTileSize));
+          int nPY = static_cast<int>((fPLY * nPLW / nTileSize));
+          if (nPX + nPY * nMapHeight < 0 ||
+              nPX + nPY * nMapHeight > nMapHeight * nMapWidth ||
+              gMap[nPX + nPY * nMapHeight]) {
+            fPLX -= deltaTime * forwardVel * cos(fPA);
+            fPLY += forwardVel * deltaTime * sin(fPA);
+          }
           break;
         }
 
         case SDLK_s: {
           fPLX -= forwardVel * deltaTime * cos(fPA);
           fPLY += forwardVel * deltaTime * sin(fPA);
-          int nPX = static_cast<int>(fPLX);
-          int nPY = static_cast<int>(fPLY);
-
-          // TODO: collison checking
-          /* if (nPX + nPY * nMapHeight < 0 || */
-          /*     nPX + nPY * nMapHeight > nMapHeight * nMapWidth || */
-          /*     gMap[nPX + nPY * nMapHeight]) { */
-          /*   fPLX += deltaTime * forwardVel * cos(fPA); */
-          /*   fPLY -= forwardVel * deltaTime * sin(fPA); */
-          /* } */
+          int nPX = static_cast<int>((fPLX * nPLW / nTileSize));
+          int nPY = static_cast<int>((fPLY * nPLW / nTileSize));
+          if (nPX + nPY * nMapHeight < 0 ||
+              nPX + nPY * nMapHeight > nMapHeight * nMapWidth ||
+              gMap[nPX + nPY * nMapHeight]) {
+            fPLX += deltaTime * forwardVel * cos(fPA);
+            fPLY -= forwardVel * deltaTime * sin(fPA);
+          }
           break;
         }
         case SDLK_RIGHT: {
@@ -257,21 +255,27 @@ int main(int argc, char **argv) {
 
 void cast_rays(SDL_Rect Player, float fPA, float fFov, float theta_spacing) {
   float rx, ry; // ray start postion
-  float vx, vy; // ray verticies
-  //
   //
   //
   float fFovMin = -fFov / 2;
   float fFovMax = fFov / 2;
-  float hx, hy;
-  float xo, yo; // x and y offsetn
-  const int MAX_DOF = nMapWidth * 2;
 
-  for (float fRayAngle = fFovMin + fPA; fRayAngle < fPA + fFovMax;
-       fRayAngle += theta_spacing) {
-    // do the calculations here
+  int num_rays = fFov / theta_spacing;
+  int line_width = SCREEN_WIDTH / num_rays;
+  int lineXoffset = 0;
+  float hx = Player.x, hy = Player.y;
+
+  float xo, yo;                       // x and y offsetn
+  float vx = Player.x, vy = Player.y; // ray verticies
+  for (float fRA = fFovMin + fPA; fRA < fPA + fFovMax; fRA += theta_spacing) {
+    int deg = radToDeg(fRA);
+    float fRayAngle = degToRad(deg % 360);
     //
-    //
+    hx = Player.x;
+    hy = Player.y;
+    vx = Player.x;
+    vy = Player.y;
+    // casting rays
     float distH = std::numeric_limits<float>::max();
     float distV = std::numeric_limits<float>::max();
 
@@ -313,9 +317,11 @@ void cast_rays(SDL_Rect Player, float fPA, float fFov, float theta_spacing) {
         hy = ry;
         distH = dist(Player.x, Player.y, hx, hy);
       } else {
+        dof++;
+        if (dof >= MAX_DOF)
+          break;
         rx += xo;
         ry += yo;
-        dof++;
       }
     }
     // horizontal check
@@ -352,11 +358,12 @@ void cast_rays(SDL_Rect Player, float fPA, float fFov, float theta_spacing) {
         vx = rx;
         vy = ry;
         distV = dist(Player.x, Player.y, vx, vy);
-
         dof = MAX_DOF;
 
       } else {
         dof++;
+        if (dof >= MAX_DOF)
+          break;
         rx += xo;
         ry += yo;
       }
@@ -370,6 +377,29 @@ void cast_rays(SDL_Rect Player, float fPA, float fFov, float theta_spacing) {
     SDL_SetRenderDrawColor(gRenderer, 0xff, 0xff, 0xff, 0x00);
     SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH / 2, vx,
                         vy);
+
+    float min_line =
+        std::min(distV, distH) * cos(fRayAngle - fPA); // fish eye effect fix
+
+    float line_height = SCREEN_HEIGHT * nMapHeight / min_line;
+    line_height = line_height >= SCREEN_HEIGHT ? SCREEN_HEIGHT : line_height;
+    float lineOff = SCREEN_HEIGHT / 2.0f - line_height / 2.0f;
+    SDL_FRect wall_line = {SCREEN_HEIGHT + 0.0f + lineXoffset, lineOff,
+                           static_cast<float>(line_width * 2), line_height};
+    lineXoffset += line_width;
+    SDL_FRect celling = {SCREEN_HEIGHT + 0.0f + lineXoffset, 0.0f,
+                         static_cast<float>(line_width), lineOff};
+    SDL_FRect floor = {SCREEN_HEIGHT + 0.0f + lineXoffset,
+                       lineOff + line_height, static_cast<float>(line_width),
+                       SCREEN_HEIGHT - lineOff};
+    float d = (1 - (min_line / SCREEN_HEIGHT));
+    d = d < 0 ? 0 : d;
+    SDL_SetRenderDrawColor(gRenderer, 135, 206, 250, 255);
+    SDL_RenderFillRectF(gRenderer, &celling);
+    SDL_SetRenderDrawColor(gRenderer, 178 * d, 34 * d, 34 * d, 255);
+    SDL_RenderFillRectF(gRenderer, &wall_line);
+    SDL_SetRenderDrawColor(gRenderer, 64, 64, 64, 0xff);
+    SDL_RenderFillRectF(gRenderer, &floor);
   }
 }
 // BUG: THERE IS A GIANT FUCKING CHASM WHERE RAY ANGLES SHOULD BE PRESENT
@@ -479,8 +509,8 @@ void cast_raysEvol(SDL_Rect Player, float fPA, float fFov) {
         vy = ry;
         distV = dist(Player.x, Player.y, vx, vy);
         /* SDL_SetRenderDrawColor(gRenderer, 0xff, 0x00, 0xff, 0x00); */
-        /* SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH /
-         * 2, */
+        /* SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH
+         * / 2, */
         /*                     vx, vy); */
         dof = MAX_DOF;
       } else {
@@ -497,8 +527,8 @@ void cast_raysEvol(SDL_Rect Player, float fPA, float fFov) {
     }
     float minLine = std::min(distV, distH) * cos(fRayAngle + fPA);
     /* SDL_SetRenderDrawColor(gRenderer, 0xff, 0xff, 0xff, 0x00); */
-    /* SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH / 2,
-     * vx, */
+    /* SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH /
+     * 2, vx, */
     /*                     vy); */
     /**/
     float LineH =
