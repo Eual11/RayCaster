@@ -1,4 +1,4 @@
-OBJ = ./src/test3.cpp
+OBJ = ./src/test4.cpp
 BUILD_NAME = e
 INCLUDE_PATH =-I"${CPLUS_INCLUDE_PATH}/SDL2" 
 COMPILE_FLAGS =   -Wall -Wpedantic -Wextra -g -std=c++17

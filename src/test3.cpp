@@ -35,7 +35,7 @@ const int SCREEN_HEIGHT = 480;
 const int nPLW = 10;
 const int nPLH = 10;
 float forwardVel = 0.1;
-float rotVel = 0.8;
+float rotVel = 0.95;
 const int nMapHeight = 24;
 const int nMapWidth = 24;
 const int MAX_DOF = nMapWidth;
@@ -143,7 +143,6 @@ int main(int argc, char **argv) {
   Player.h = nPLH;
 
   float fPA = M_PI / 2;
-  fPA = 25.573601;
   float fFov = M_PI / 2;
   float fFovMin = -fFov / 2;
   float fFovMax = fFov / 2;
@@ -233,11 +232,10 @@ int main(int argc, char **argv) {
     //
     //
 
-    cast_rays(Player, fPA, fFov, theta_spacing);
-    /* cast_raysEvol(Player, fPA, fFov); */
-    /* cast_raysEvol(Player, fPA, fFov); */
     Player.x = fPLX * nPLW;
     Player.y = fPLY * nPLH;
+    /* cast_raysEvol(Player, fPA, fFov); */
+    cast_rays(Player, fPA, fFov, theta_spacing);
 
     /* vx = Player.x + rayL * cos(fPA); */
     /* vy = Player.y - rayL * sin(fPA); */
@@ -259,9 +257,11 @@ void cast_rays(SDL_Rect Player, float fPA, float fFov, float theta_spacing) {
   //
   float fFovMin = -fFov / 2;
   float fFovMax = fFov / 2;
-
+  int line_width;
   int num_rays = fFov / theta_spacing;
-  int line_width = SCREEN_WIDTH / num_rays;
+  line_width = SCREEN_HEIGHT;
+  if (num_rays != 0)
+    line_width = SCREEN_WIDTH / num_rays;
   int lineXoffset = 0;
   float hx = Player.x, hy = Player.y;
 
@@ -316,6 +316,8 @@ void cast_rays(SDL_Rect Player, float fPA, float fFov, float theta_spacing) {
         hx = rx;
         hy = ry;
         distH = dist(Player.x, Player.y, hx, hy);
+        distH =
+            cos(fRayAngle) * (hx - Player.x) - sin(fRayAngle) * (hy - Player.y);
       } else {
         dof++;
         if (dof >= MAX_DOF)
@@ -358,6 +360,8 @@ void cast_rays(SDL_Rect Player, float fPA, float fFov, float theta_spacing) {
         vx = rx;
         vy = ry;
         distV = dist(Player.x, Player.y, vx, vy);
+        distV =
+            cos(fRayAngle) * (vx - Player.x) - sin(fRayAngle) * (vy - Player.y);
         dof = MAX_DOF;
 
       } else {
@@ -370,16 +374,18 @@ void cast_rays(SDL_Rect Player, float fPA, float fFov, float theta_spacing) {
     }
     vx = rx;
     vy = ry;
+    float d = 1;
     if (distV > distH) {
       vx = hx;
       vy = hy;
+      d = 0.7;
     }
     SDL_SetRenderDrawColor(gRenderer, 0xff, 0xff, 0xff, 0x00);
     SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH / 2, vx,
                         vy);
 
     float min_line =
-        std::min(distV, distH) * cos(fRayAngle - fPA); // fish eye effect fix
+        std::min(distV, distH) * cos(fPA - fRayAngle); // fish eye effect fix
 
     float line_height = SCREEN_HEIGHT * nMapHeight / min_line;
     line_height = line_height >= SCREEN_HEIGHT ? SCREEN_HEIGHT : line_height;
@@ -392,7 +398,7 @@ void cast_rays(SDL_Rect Player, float fPA, float fFov, float theta_spacing) {
     SDL_FRect floor = {SCREEN_HEIGHT + 0.0f + lineXoffset,
                        lineOff + line_height, static_cast<float>(line_width),
                        SCREEN_HEIGHT - lineOff};
-    float d = (1 - (min_line / SCREEN_HEIGHT));
+    // (1 - (min_line / SCREEN_HEIGHT));
     d = d < 0 ? 0 : d;
     SDL_SetRenderDrawColor(gRenderer, 135, 206, 250, 255);
     SDL_RenderFillRectF(gRenderer, &celling);
@@ -418,7 +424,10 @@ void cast_raysEvol(SDL_Rect Player, float fPA, float fFov) {
     //
     //
     //
-    float fRayAngle = fPA - fFov / 2 + (float)i * fFov / (float)(SCREEN_WIDTH);
+    int deg = radToDeg(fPA);
+    float fRayAngle = degToRad(deg % 360);
+
+    fRayAngle = fPA - fFov / 2 + (float)i * fFov / (float)(SCREEN_WIDTH);
     float distH = std::numeric_limits<float>::max();
     float distV = std::numeric_limits<float>::max();
 
@@ -465,6 +474,9 @@ void cast_raysEvol(SDL_Rect Player, float fPA, float fFov) {
                             hx, hy);
         distH = dist(Player.x, Player.y, hx, hy);
       } else {
+        dof++;
+        if (dof >= MAX_DOF)
+          break;
         rx += xo;
         ry += yo;
         dof++;
@@ -508,13 +520,15 @@ void cast_raysEvol(SDL_Rect Player, float fPA, float fFov) {
         vx = rx;
         vy = ry;
         distV = dist(Player.x, Player.y, vx, vy);
-        /* SDL_SetRenderDrawColor(gRenderer, 0xff, 0x00, 0xff, 0x00); */
-        /* SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH
-         * / 2, */
-        /*                     vx, vy); */
+        SDL_SetRenderDrawColor(gRenderer, 0xff, 0x00, 0xff, 0x00);
+        SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH / 2,
+                            vx, vy);
         dof = MAX_DOF;
       } else {
         dof++;
+        if (dof >= MAX_DOF)
+          break;
+
         rx += xo;
         ry += yo;
       }
@@ -525,18 +539,19 @@ void cast_raysEvol(SDL_Rect Player, float fPA, float fFov) {
       vx = hx;
       vy = hy;
     }
-    float minLine = std::min(distV, distH) * cos(fRayAngle + fPA);
-    /* SDL_SetRenderDrawColor(gRenderer, 0xff, 0xff, 0xff, 0x00); */
-    /* SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH /
-     * 2, vx, */
-    /*                     vy); */
-    /**/
+
+    SDL_SetRenderDrawColor(gRenderer, 0xff, 0xff, 0xff, 0x00);
+    SDL_RenderDrawLineF(gRenderer, Player.x + nPLW / 2, Player.y + nPLH / 2, vx,
+                        vy);
+    deg = radToDeg(fPA);
+    float fPAngle = degToRad(deg % 360);
+    float minLine = std::min(distV, distH) * cos(fRayAngle - fPAngle);
+
     float LineH =
         (SCREEN_HEIGHT * nMapHeight) / minLine; // std::min(distV, distH);
     LineH = LineH > SCREEN_HEIGHT ? SCREEN_HEIGHT : LineH;
     float LineOff = SCREEN_HEIGHT / 2.0f - LineH / 2;
     Uint8 color = 255 * (1 - (minLine / SCREEN_HEIGHT));
-    // SDL_SetRenderDrawColor(gRenderer, color, 0x00, 0x0d, 0x00);
 
     SDL_SetRenderDrawColor(gRenderer, color, 0x00, 0x00, 0x00);
     SDL_RenderDrawLineF(gRenderer, i + SCREEN_WIDTH + 10, LineOff,
