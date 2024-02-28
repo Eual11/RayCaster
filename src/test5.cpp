@@ -8,6 +8,7 @@
 #include <SDL2/SDL_video.h>
 #include <Utils/FPSTimer.hpp>
 #include <Utils/Texture.hpp>
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -50,7 +51,9 @@ int worldMap[nMapWidth][nMapHeight] = {
     {4, 0, 6, 0, 6, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 5, 0, 0, 2, 0, 0, 0, 2},
     {4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2},
     {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3}};
-std::vector<std::vector<Uint32>> TextureArray;
+std::vector<std::vector<Uint32>> WallTextureArray;
+std::vector<std::vector<Uint32>> FloorTextureArray;
+std::vector<std::vector<Uint32>> CellingTextureArray;
 void rotateVec(SDL_FPoint &rect, float theta) {
 
   float x = rect.x;
@@ -126,7 +129,7 @@ void close_program() {
   SDL_Quit();
 }
 
-void addTexture(std::string path) {
+void addTexture(std::string path, int type = 0) {
 
   SDL_Surface *testSurface = IMG_Load(path.c_str());
   if (!testSurface) {
@@ -151,7 +154,12 @@ void addTexture(std::string path) {
     }
   }
 
-  TextureArray.push_back(std::move(texels));
+  if (type == 0)
+    WallTextureArray.push_back(std::move(texels));
+  else if (type == 1) // celling
+    CellingTextureArray.push_back(std::move(texels));
+  else // floor
+    FloorTextureArray.push_back(std::move(texels));
 }
 void clean_buffer(Uint32 *buffer, int width, int height, Uint32 clean) {
   for (int x = 0; x < width; x++) {
@@ -166,18 +174,22 @@ int main(int argc, char **argv) {
 
   std::cout << SDL_GetError() << std::endl;
   SDL_FPoint fPlayer;
-  fPlayer.x = 10;
-  fPlayer.y = 2.0f;
+  fPlayer.x = 6;
+  fPlayer.y = 4;
   addTexture("./assets/texture/tex.png");
 
-  addTexture("./assets/texture/greystone.png");
-  addTexture("./assets/texture/tex1.png");
+  addTexture("./assets/texture/wwall.png");
+  addTexture("./assets/texture/wall.png");
   addTexture("./assets/texture/tex2.png");
   addTexture("./assets/texture/tex3.png");
-  /* addTexture("./assets/texture/mossy.png"); */
-  /* addTexture("./assets/texture/purplestone.png"); */
 
-  float fSpeed = 10;
+  addTexture("./assets/texture/sky.png", 1);
+  addTexture("./assets/texture/tex1.png");
+  addTexture("./assets/texture/tex.png");
+  /* addTexture("./assets/texture/bois.png"); */
+  addTexture("./assets/texture/tex1.png", 2);
+  /* addTexture("./assets/texture/greystone.png", 1); */
+  float fSpeed = 6;
   float fRotSpeed = 5;
   SDL_FPoint fPlayerDir;
   fPlayerDir.x = -1;
@@ -203,6 +215,69 @@ int main(int argc, char **argv) {
 
     SDL_LockTexture(gTexture, nullptr, (void **)&screenBuff, &pitch);
     pitch /= 4;
+
+    // Celling and floor casting floor gang
+    //
+
+    for (int y = SCREEN_HEIGHT / 2 + 1; y < SCREEN_HEIGHT; y++) {
+
+      float fRayDirX0 = fPlayerDir.x - fCameraPlane.x;
+      float fRayDirY0 = fPlayerDir.y - fCameraPlane.y;
+      float fRayDirY1 = fPlayerDir.y + fCameraPlane.y;
+      float fRayDirX1 = fPlayerDir.x + fCameraPlane.x;
+
+      float fPOZ =
+          0.5 * SCREEN_HEIGHT; // the line of symetry for celling and floor
+      //
+      float p = y - fPOZ;
+
+      float fRayDistance = fPOZ / p; // dtance tranveled by the ray
+      //
+      float fFloorStepX =
+          fRayDistance * (fRayDirX1 - fRayDirX0) / (float)SCREEN_WIDTH;
+      float fFloorStepY =
+          fRayDistance * (fRayDirY1 - fRayDirY0) / (float)SCREEN_WIDTH;
+
+      float fFloorX = fPlayer.x + fRayDistance * fRayDirX0;
+      float fFloorY = fPlayer.y + fRayDistance * fRayDirY0;
+
+      // for each pixel in the scan line interpolate the texture
+      //
+
+      //
+      //
+      for (int x = 0; x < SCREEN_WIDTH; x++) {
+
+        int nCellX = (int)(fFloorX);
+        int nCellY = (int)(fFloorY);
+
+        int tx = (1 - (fFloorX - nCellX)) * nTextureWidth;
+        int ty = (1 - (fFloorY - nCellY)) * nTextureHeight;
+        tx &= (nTextureWidth - 1);
+        ty &= (nTextureHeight - 1); // limiting them to not over flow
+        //
+
+        fFloorX += fFloorStepX;
+        fFloorY += fFloorStepY;
+
+        int cellT = 0;
+        int floorT = 0;
+
+        Uint32 color = FloorTextureArray[floorT][tx + ty * nTextureWidth];
+
+        // needs a bit darkening
+        //
+        screenBuff[x + y * pitch] = color;
+        // celling
+
+        color = CellingTextureArray[cellT][tx + ty * nTextureWidth];
+
+        // darkening
+        //
+
+        screenBuff[x + (SCREEN_HEIGHT - 1 - y) * pitch] = color;
+      }
+    }
     for (int x = 0; x < SCREEN_WIDTH; x++) {
       float fCameraX = 2.0f * x / SCREEN_WIDTH - 1.0;
 
@@ -279,32 +354,31 @@ int main(int argc, char **argv) {
       line_end = line_end >= SCREEN_HEIGHT ? SCREEN_HEIGHT - 1 : line_end;
 
       int nTextureNum = worldMap[nMapX][nMapY] - 1;
-      if (nTextureNum >= (int)TextureArray.size())
-        nTextureNum = TextureArray.size() - 1;
+      if (nTextureNum >= (int)WallTextureArray.size())
+        nTextureNum = WallTextureArray.size() - 1;
       float fWallX;
       if (nSide == 0) {
-        fWallX = fPlayer.y + fPerpDistance * fRayDirY;
+        fWallX = (int)fPlayer.y + fPerpDistance * fRayDirY;
       } else
-        fWallX = fPlayer.x + fPerpDistance * fRayDirX;
+        fWallX = (int)fPlayer.x + fPerpDistance * fRayDirX;
 
-      fWallX = fWallX - std::floor(fWallX);
+      fWallX = fWallX - (int)fWallX;
 
       int nTetX =
           fWallX * nTextureWidth; // the x postion of the starting texture
       if (nSide == 0 && fRayDirX > 0)
         nTetX = nTextureWidth - nTetX - 1;
-      if (nSide == 1 && fRayDirY > 0)
+      if (nSide == 1 && fRayDirY < 0)
         nTetX = nTextureWidth - nTetX - 1;
       float fStep = 1.0 * nTextureHeight / line_height;
       float fTetY =
           (line_start - SCREEN_HEIGHT / 2.0 + line_height / 2.0) * fStep;
-
       for (int y = line_start; y < line_end; y++) {
         int nTetY = static_cast<int>(fTetY) & (nTextureHeight - 1);
         fTetY += fStep;
 
         Uint32 color =
-            TextureArray[nTextureNum][nTetX + nTextureHeight * nTetY];
+            WallTextureArray[nTextureNum][nTetX + nTextureHeight * nTetY];
 
         screenBuff[x + y * pitch] = color;
       }

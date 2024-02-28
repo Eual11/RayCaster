@@ -1,3 +1,9 @@
 .*
 !.gitignore
 *.log
+test
+test.ppm
+src/trs.cpp
+src/chrono.cpp
+test.exe
+src/cp.cpp
