@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# Prerequisites
+# Prerequisits
 *.d
 
 #Compiled Object files
@@ -43,4 +42,3 @@ src/chrono.cpp
 src/cp.cpp
 src/tm.cpp
 
->>>>>>> origin/master
