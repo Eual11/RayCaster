@@ -7,3 +7,4 @@ src/trs.cpp
 src/chrono.cpp
 test.exe
 src/cp.cpp
+src/tm.cpp
