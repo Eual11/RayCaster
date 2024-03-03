@@ -1,7 +1,8 @@
+<<<<<<< HEAD
 # Prerequisites
 *.d
 
-# Compiled Object files
+#Compiled Object files
 *.slo
 *.lo
 *.o
@@ -30,3 +31,16 @@
 *.exe
 *.out
 *.app
+=======
+
+.*
+!.gitignore
+*.log
+test
+test.ppm
+src/trs.cpp
+src/chrono.cpp
+src/cp.cpp
+src/tm.cpp
+
+>>>>>>> origin/master

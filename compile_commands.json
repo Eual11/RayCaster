@@ -1,0 +1,45 @@
+[
+ {
+  "directory": "C:\\Users\\Eual\\Documents\\C++\\SDL\\SDL\\Homebrew_Games\\RayCaster",
+  "arguments": [
+   "g++",
+   "./src/test3.cpp",
+   "-IC:msys64usrinclude/SDL2",
+   "-L.C:msys64usrlib",
+   "-Wall",
+   "-Wpedantic",
+   "-Wextra",
+   "-g",
+   "-std=c++17",
+   "-lmingw32",
+   "-lSDL2main",
+   "-lSDL2",
+   "-lSDL2_image",
+   "-o",
+   "./build/e"
+  ],
+  "file": "./src/test3.cpp"
+ },
+ {
+  "directory": "C:\\Users\\Eual\\Documents\\C++\\SDL\\SDL\\Homebrew_Games\\RayCaster",
+  "arguments": [
+   "g++",
+   "./src/test5.cpp",
+   "-IC:msys64usrinclude/SDL2",
+   "-L.C:msys64usrlib",
+   "-Wall",
+   "-Wpedantic",
+   "-Wextra",
+   "-g",
+   "-std=c++17",
+   "-lmingw32",
+   "-lSDL2main",
+   "-lSDL2",
+   "-lSDL2_image",
+   "-lSDL2_ttf",
+   "-o",
+   "./build/e"
+  ],
+  "file": "./src/test5.cpp"
+ }
+]
